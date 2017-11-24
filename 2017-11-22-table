@@ -1,0 +1,19 @@
+//point参数数操作节点
+//传入的数据，必须是json格式
+function list(point,data) {
+  this.point=point;
+  this.data=data;
+  this.fun=function () {
+    this.point.html("");
+    var str="?";
+    for(i in this.data){
+      str+="<tr>"
+      for(m in this.data[i]){
+        str+="<td class='tdAll'>"+this.data[i][m]+"</td>"
+      }
+      str+="</tr>"
+    }
+    str=str.substr(1,str.length);
+    this.point.append(str);
+  }
+}
