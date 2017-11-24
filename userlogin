@@ -1,0 +1,136 @@
+/**
+ * 用户路由
+ * Created by 李小军 on 2017-11-15.
+ */
+"use strict";
+const express = require("express");
+const app = express();
+const userModal = require("../modal/userModal.js");
+const AV=require("leanengine");
+AV.initialize("xvqdjOqHzUgVo4DvpKS4HL7c-gzGzoHsz","GiUmu1bCAjwuBWDQfWnr5gv2");
+//手机修改
+function sendSms(req,res){
+  let flag=0;
+  let phone=req.body.phone;
+  userModal.searchTel(phone)
+    .then(function(data){
+      console.log(data.length+"手机修改")
+      if(data.length>0){
+        flag=1;
+      }else{
+        flag=-1;
+        throw new Error("手机号不存在");
+      }
+      return AV.Cloud.requestSmsCode({
+        mobilePhoneNumber:phone,
+        name: '应用名称',
+        op: '某种操作',
+        ttl: 5
+      })
+    })
+    .then(function(data){
+      res.send("success");
+    })
+    .catch(function(err){
+      res.send(err);
+    });
+}
+//注册验证
+function sendSMS(req,res){
+  let flag;
+  //配置短信模块：
+  let phone=req.body.phone;
+  userModal.searchTel(phone)
+    .then(function (data) {
+      if(data.length>0 && data[0].user_tel==phone){
+        flag=1;
+        throw new Error("手机号已经注册");
+      }else{
+        flag=-1;
+      }
+      return AV.Cloud.requestSmsCode({
+        mobilePhoneNumber:phone,
+        name: '应用名称',
+        op: '某种操作',
+        ttl: 5
+      })
+    })
+    .then(function(data){
+      res.send("验证码发送成功，请注意查收");
+    },function (err) {
+      res.send("验证码发送失败");
+    })
+    .catch(function(err){
+       res.send(err);
+    });
+}
+// 注册：
+function register(req,res){
+  let flag;
+  let userName = req.body.userName;
+  let userId = req.body.userId;
+  let pwd = req.body.pwd;
+  let phone = req.body.phone;
+  let smscode = req.body.smscode;
+  AV.Cloud.verifySmsCode(smscode,phone)
+    .then(function(data){
+    flag=1;
+    },function(err){
+    flag=-1;
+    })
+    .then(function () {
+      userModal.register(userName,userId,pwd,phone)
+        .then(function (data) {
+          if(data.affectedRows>0){
+            res.send("success");
+          }else{
+            res.send("database search fail");
+          }
+        })
+        .catch(function (err) {
+          res.send("database err");
+        })
+  })
+}
+//登录
+function userLogin(req,res) {
+  let userId = req.body.userId;
+  let pwd = req.body.pwd;
+  userModal.login(userId,pwd)
+    .then(function (data) {
+      if(data.length>0){
+        res.send({"flag":1,data});
+      }else{
+        res.send({"flag":-1,message:"user err"});
+      }
+    })
+    .catch(function (err) {
+      res.send({"flag":-1,message:"database err"});
+    })
+
+}
+// 重置密码：
+function resetPwd(req,res){
+  let flag=0;
+  let phone = req.body.phone;
+  let smscode = req.body.smscode;
+  let firstPwd = req.body.firstPwd;
+  AV.Cloud.verifySmsCode(smscode,phone)
+    .then(function(data){
+    flag=1;
+  },function(err){
+    flag=-1;
+  }).then(function () {
+    userModal.resetPwd(firstPwd,phone)
+      .then(function (data) {
+        res.send({"flag":flag,message:"success"});
+      })
+      .catch(function (err) {
+        res.send({"flag":flag,message:"database err"});
+      })
+  })
+}
+
+module.exports={
+  sendSMS,register,userLogin,resetPwd,sendSms
+};
