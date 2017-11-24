@@ -1,0 +1,37 @@
+var express = require('express')
+var multer  = require('multer')//新增
+var bodyParser = require("body-parser");
+var UploadImg = require("./route/UploadImg.js");
+var app = express();
+
+app.use(bodyParser.urlencoded({extended:false}));
+app.use(express.static(__dirname+"/public"));
+
+//新增
+app.use(multer(
+  {dest:'./public/upload/img',
+    rename:function (filedname,filename) {
+      return filedname+"_"+filename+"_"+Date.now();
+    }
+  }
+));
+
+//新增
+app.use('/UploadImg',UploadImg);
+
+app.listen(8888,function(){
+  console.log("服务启动");
+});
+
+//------------------------UploadImg-------------------------------------------------------
+'use strict';
+const express=require('express');
+const UploadImg=express.Router();
+
+UploadImg.route("/img1.do").post(function (req,res) {
+  var data=req.files.file.path;
+  var reName=data.replace("public\\upload\\img\\", "").replace("public/upload/img/", "");
+  var url="upload/img/"+reName;
+  res.send(url)
+})
+module.exports=UploadImg;
